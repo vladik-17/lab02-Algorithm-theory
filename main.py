@@ -168,9 +168,12 @@ def main() -> None:
             if not repository.all():
                 messagebox.showinfo("Экспорт", "История пуста. Сначала выполните расчёт.")
                 return
+            export_directory = Path(__file__).resolve().parent / "exports"
+            export_directory.mkdir(parents=True, exist_ok=True)
             file_path = filedialog.asksaveasfilename(
                 title="Сохранить всю историю", defaultextension=".xlsx",
                 filetypes=[("Книга Excel", "*.xlsx")], initialfile="energy_history.xlsx",
+                initialdir=str(export_directory),
                 parent=window,
             )
             if not file_path:

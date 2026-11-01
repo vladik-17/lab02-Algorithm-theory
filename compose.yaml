@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    image: lab02-energy
+    environment:
+      DISPLAY: ":0"
+      TZ: Europe/Moscow
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+      - type: bind
+        source: ${WSLG_SOCKET_DIR:-/mnt/host/wslg/.X11-unix}
+        target: /tmp/.X11-unix
+        read_only: true
+        bind:
+          create_host_path: false
