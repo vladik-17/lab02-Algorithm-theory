@@ -33,37 +33,120 @@ def sort_history_rows(rows, column: str, descending: bool = False):
     return sorted(rows, key=sort_key, reverse=descending)
 
 
-def show_help() -> None:
-    messagebox.showinfo(
-        "Справка",
-        "1. Выберите прибор. Начальная мощность — пример: уточните её "
-        "по инструкции своего прибора.\n"
-        "2. Укажите мощность в ваттах, часы работы в день (от 0 до 24), "
-        "целое количество дней (от 1) и тариф в руб./кВт·ч.\n"
-        "3. Нажмите «Рассчитать» или Enter. Дробные числа можно вводить "
-        "с точкой или запятой.\n\n"
-        "Энергия = мощность / 1000 × часы в день × дни.\n"
-        "Стоимость = энергия × тариф.\n\n"
-        "Расчёт предполагает постоянную мощность. Фактическое потребление "
-        "зависит от режима работы. Для микроволновки нужна потребляемая "
-        "мощность, а не мощность нагрева.\n\n"
-        "Каждый успешный расчёт автоматически сохраняется. Во вкладке "
-        "«История» можно просмотреть записи и выгрузить всю историю "
-        "кнопкой «Экспорт в Excel». Выберите место сохранения файла .xlsx.\n\n"
-        "Окно можно растягивать. Ширина столбцов подбирается по содержимому. "
-        "Нажмите заголовок столбца для сортировки; повторный клик меняет "
-        "направление. Стрелка показывает выбранный порядок. "
-        "Сортировка таблицы не меняет порядок записей в Excel.",
+def show_help(parent=None) -> None:
+    help_window = tk.Toplevel(parent)
+    help_window.title("Справка")
+    help_window.geometry("720x560")
+    help_window.minsize(540, 380)
+    help_window.configure(background="#EEF3F9")
+    help_window.columnconfigure(0, weight=1)
+    help_window.rowconfigure(1, weight=1)
+    ttk.Label(help_window, text="Как пользоваться", style="Section.TLabel").grid(
+        row=0, column=0, sticky="w", padx=20, pady=(18, 12)
     )
+    text = tk.Text(
+        help_window, wrap="word", font="TkTextFont", background="#FFFFFF",
+        foreground="#23364D", relief="flat", padx=18, pady=16,
+        spacing3=12, width=48, height=16,
+    )
+    text.grid(row=1, column=0, sticky="nsew", padx=(20, 0))
+    scroll = ttk.Scrollbar(help_window, command=text.yview)
+    scroll.grid(row=1, column=1, sticky="ns", padx=(0, 20))
+    text.configure(yscrollcommand=scroll.set)
+    text.insert("1.0", (
+        "1. Выберите прибор. Проверьте потребляемую мощность в ваттах "
+        "по его инструкции — начальное значение приведено для примера.\n\n"
+        "2. Введите часы работы в день (0–24), количество дней "
+        "(целое число от 1) и тариф в руб./кВт·ч. "
+        "Мощность должна быть больше нуля, тариф — не меньше нуля. "
+        "Дробные числа можно вводить с точкой или запятой.\n\n"
+        "3. Нажмите «Рассчитать» или Enter. Появятся расход энергии "
+        "и стоимость. Расчёт сохранится автоматически.\n\n"
+        "4. Чтобы сохранить все расчёты в файл, откройте «История» "
+        "и нажмите «Экспорт в Excel».\n\n"
+        "Результат — примерная оценка: реальный расход зависит от режима работы."
+    ))
+    text.configure(state="disabled")
+    ttk.Button(help_window, text="Понятно", command=help_window.destroy).grid(
+        row=2, column=0, columnspan=2, pady=16
+    )
+    help_window.bind("<Escape>", lambda _event: help_window.destroy())
 
 
 def main() -> None:
     window = tk.Tk()
     window.title("Энергокалькулятор")
-    window.geometry("780x620")
-    window.minsize(520, 540)
+    base_width, base_height = 940, 660
+    window.geometry(f"{base_width}x{base_height}")
+    window.minsize(base_width, base_height)
+    window.configure(background="#EEF3F9")
     window.columnconfigure(0, weight=1)
-    window.rowconfigure(0, weight=1)
+    window.rowconfigure(1, weight=1)
+
+    family = "Segoe UI" if "Segoe UI" in font.families(window) else "DejaVu Sans"
+    ui_fonts = {
+        "body": font.Font(window, family=family, size=14),
+        "small": font.Font(window, family=family, size=11),
+        "section": font.Font(window, family=family, size=16, weight="bold"),
+        "title": font.Font(window, family=family, size=26, weight="bold"),
+        "number": font.Font(window, family=family, size=24, weight="bold"),
+        "heading": font.Font(window, family=family, size=13, weight="bold"),
+        "row": font.Font(window, family=family, size=13),
+    }
+    base_sizes = {key: value.cget("size") for key, value in ui_fonts.items()}
+    default_fonts = [font.nametofont(name, root=window) for name in
+                     ("TkDefaultFont", "TkTextFont", "TkMenuFont")]
+    for named_font in default_fonts:
+        named_font.configure(family=family, size=14)
+    window.option_add("*TCombobox*Listbox.font", ui_fonts["body"])
+
+    style = ttk.Style(window)
+    style.theme_use("clam")
+    style.configure(".", font=ui_fonts["body"], foreground="#23364D")
+    style.configure("App.TFrame", background="#EEF3F9")
+    style.configure("Header.TFrame", background="#183754")
+    style.configure("Card.TFrame", background="#FFFFFF")
+    style.configure("Result.TFrame", background="#E3EDF9")
+    style.configure("Header.TLabel", background="#183754", foreground="#FFFFFF", font=ui_fonts["title"])
+    style.configure("HeaderNote.TLabel", background="#183754", foreground="#CBDBEC", font=ui_fonts["small"])
+    style.configure("TLabel", background="#EEF3F9")
+    style.configure("Section.TLabel", background="#EEF3F9", font=ui_fonts["section"])
+    style.configure("Card.TLabel", background="#FFFFFF")
+    style.configure("CardTitle.TLabel", background="#FFFFFF", font=ui_fonts["section"])
+    style.configure("Muted.TLabel", background="#EEF3F9", foreground="#53677E", font=ui_fonts["small"])
+    style.configure("Result.TLabel", background="#E3EDF9", foreground="#334F6D")
+    style.configure("ResultTitle.TLabel", background="#E3EDF9", font=ui_fonts["section"])
+    style.configure("Number.TLabel", background="#E3EDF9", foreground="#174B8C", font=ui_fonts["number"])
+    style.configure("Saved.TLabel", background="#E3EDF9", foreground="#266343", font=ui_fonts["small"])
+    style.configure("Error.TLabel", background="#EEF3F9", foreground="#B42335", font=ui_fonts["small"])
+    style.configure("TEntry", padding=(8, 5), fieldbackground="#F8FAFD", bordercolor="#B9C9DA")
+    style.configure("TCombobox", padding=(8, 5), arrowsize=18)
+    style.map("TCombobox", fieldbackground=[("readonly", "#F8FAFD")],
+              selectbackground=[("readonly", "#F8FAFD")], selectforeground=[("readonly", "#23364D")])
+    style.configure("TButton", padding=(16, 9), background="#E0E9F3", bordercolor="#C6D4E3")
+    style.map("TButton", background=[("active", "#CFDEED")])
+    style.configure("Primary.TButton", background="#2862B8", foreground="#FFFFFF", bordercolor="#2862B8")
+    style.map("Primary.TButton", background=[("active", "#1B4B91"), ("pressed", "#153E79")],
+              foreground=[("active", "#FFFFFF")])
+    style.configure("TNotebook", background="#EEF3F9", borderwidth=0)
+    style.configure("TNotebook.Tab", padding=(24, 10), background="#DDE7F2", foreground="#435A73")
+    style.map("TNotebook.Tab", background=[("selected", "#FFFFFF")], foreground=[("selected", "#174B8C")])
+    row_font, heading_font = ui_fonts["row"], ui_fonts["heading"]
+    style.configure("History.Treeview", font=row_font, background="#FFFFFF", fieldbackground="#FFFFFF",
+                    borderwidth=0, rowheight=row_font.metrics("linespace") + 14)
+    style.configure("History.Treeview.Heading", font=heading_font, padding=(10, 10),
+                    background="#DDE9F6", foreground="#284C73", relief="flat")
+    style.map("History.Treeview", background=[("selected", "#CFE1F6")], foreground=[("selected", "#143B67")])
+    style.map("History.Treeview.Heading", background=[("active", "#CCDDF1")])
+
+    header = ttk.Frame(window, style="Header.TFrame", padding=(24, 18))
+    header.grid(row=0, column=0, sticky="ew")
+    header.columnconfigure(0, weight=1)
+    ttk.Label(header, text="Энергокалькулятор", style="Header.TLabel").grid(row=0, column=0, sticky="w")
+    ttk.Label(header, text="Вариант 12", style="HeaderNote.TLabel").grid(
+        row=1, column=0, sticky="w", pady=(4, 0)
+    )
+    ttk.Button(header, text="Справка", command=lambda: show_help(window)).grid(row=0, column=1, rowspan=2)
 
     try:
         repository = HistoryRepository(Path(__file__).resolve().parent / "data" / "history.db")
@@ -74,64 +157,52 @@ def main() -> None:
         return
 
     notebook = ttk.Notebook(window)
-    notebook.grid(sticky="nsew", padx=12, pady=12)
-    content = ttk.Frame(notebook, padding=20)
+    notebook.grid(row=1, column=0, sticky="nsew", padx=20, pady=(16, 20))
+    content = ttk.Frame(notebook, padding=20, style="App.TFrame")
     notebook.add(content, text="Расчёт")
     content.columnconfigure(0, weight=1)
-    content.rowconfigure(6, weight=1)
+    content.columnconfigure(1, weight=1)
+    content.rowconfigure(0, weight=1)
 
-    history_tab = ttk.Frame(notebook, padding=12)
+    history_tab = ttk.Frame(notebook, padding=16, style="App.TFrame")
     notebook.add(history_tab, text="История")
     history_tab.columnconfigure(0, weight=1)
-    history_tab.rowconfigure(2, weight=1)
-    history_count = tk.StringVar(value="История пуста")
-    toolbar = ttk.Frame(history_tab)
-    toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    history_tab.rowconfigure(1, weight=1)
+    toolbar = ttk.Frame(history_tab, style="App.TFrame")
+    toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 14))
     toolbar.columnconfigure(0, weight=1)
-    ttk.Label(toolbar, textvariable=history_count).grid(row=0, column=0, sticky="w")
-
+    history_count = tk.StringVar(value="История пуста")
+    ttk.Label(toolbar, text="История расчётов", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+    ttk.Label(toolbar, textvariable=history_count, style="Muted.TLabel").grid(row=1, column=0, sticky="w", pady=(5, 0))
+    ttk.Label(toolbar, text="Нажмите заголовок для сортировки ↑↓", style="Muted.TLabel").grid(
+        row=2, column=0, columnspan=2, sticky="w", pady=(8, 0)
+    )
     columns = ("id", "created_at", "appliance_name", "power_w", "hours_per_day",
                "days", "tariff", "energy_kwh", "cost_rub")
     titles = dict(zip(columns, (
         "№", "Дата и время", "Прибор", "Мощность, Вт", "Часы в день",
         "Дни", "Тариф, руб./кВт·ч", "Энергия, кВт·ч", "Стоимость, руб.",
     )))
-    row_font = font.Font(window, family="Segoe UI", size=10)
-    heading_font = font.Font(window, family="Segoe UI", size=10, weight="bold")
-    style = ttk.Style(window)
-    style.configure("History.Treeview", font=row_font,
-                    rowheight=row_font.metrics("linespace") + 12)
-    style.configure("History.Treeview.Heading", font=heading_font, padding=(8, 8))
-    style.map("History.Treeview", background=[("selected", "#DCEBFA")],
-              foreground=[("selected", "#153653")])
-    table = ttk.Treeview(history_tab, columns=columns, show="headings", height=12,
-                         style="History.Treeview")
+    table = ttk.Treeview(history_tab, columns=columns, show="headings", height=8, style="History.Treeview")
     table.tag_configure("even", background="#FFFFFF")
-    table.tag_configure("odd", background="#F0F5FA")
-    ttk.Label(toolbar, text="Нажмите заголовок для сортировки ↑↓", foreground="#526475").grid(
-        row=1, column=0, columnspan=2, sticky="w", pady=(6, 0)
-    )
-    table.grid(row=2, column=0, sticky="nsew")
+    table.tag_configure("odd", background="#F0F5FB")
+    table.grid(row=1, column=0, sticky="nsew")
     vertical = ttk.Scrollbar(history_tab, orient="vertical", command=table.yview)
-    vertical.grid(row=2, column=1, sticky="ns")
+    vertical.grid(row=1, column=1, sticky="ns")
     horizontal = ttk.Scrollbar(history_tab, orient="horizontal", command=table.xview)
-    horizontal.grid(row=3, column=0, sticky="ew")
+    horizontal.grid(row=2, column=0, sticky="ew")
     table.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
-
     history_rows = []
     sort_state = {"column": "id", "descending": True}
 
     def fit_columns() -> None:
         for key in columns:
-            # Резервируем место под стрелку, чтобы клик не менял ширину заголовка.
-            heading_width = heading_font.measure(titles[key] + " ▼") + 24
+            heading_width = heading_font.measure(titles[key] + " ▼") + 28
             values_width = max(
-                (row_font.measure(table.set(item, key)) + 24 for item in table.get_children()),
-                default=0,
+                (row_font.measure(table.set(item, key)) + 28 for item in table.get_children()), default=0,
             )
-            table.column(key, width=max(heading_width, values_width),
-                         minwidth=heading_width, stretch=False,
-                         anchor="w" if key in columns[1:3] else "e")
+            table.column(key, width=max(heading_width, values_width), minwidth=heading_width,
+                         stretch=False, anchor="w" if key in columns[1:3] else "e")
 
     def render_history() -> None:
         selected = table.selection()
@@ -173,35 +244,32 @@ def main() -> None:
             file_path = filedialog.asksaveasfilename(
                 title="Сохранить всю историю", defaultextension=".xlsx",
                 filetypes=[("Книга Excel", "*.xlsx")], initialfile="energy_history.xlsx",
-                initialdir=str(export_directory),
-                parent=window,
+                initialdir=str(export_directory), parent=window,
             )
             if not file_path:
                 return
             count = repository.export_excel(file_path)
         except (OSError, sqlite3.Error, ValueError):
-            messagebox.showerror(
-                "Ошибка экспорта", "Не удалось сохранить файл. Закройте его в Excel "
-                "и проверьте доступ к выбранной папке.",
-            )
+            messagebox.showerror("Ошибка экспорта", "Не удалось сохранить файл. Закройте его в Excel "
+                                 "и проверьте доступ к выбранной папке.")
             return
         messagebox.showinfo("Экспорт завершён", f"В Excel сохранено расчётов: {count}.")
 
-    ttk.Button(toolbar, text="Экспорт в Excel", command=export_history).grid(
-        row=0, column=1, sticky="e", padx=(10, 0)
+    ttk.Button(toolbar, text="Экспорт в Excel", style="Primary.TButton", command=export_history).grid(
+        row=0, column=1, rowspan=2, sticky="e", padx=(16, 0)
     )
     try:
         refresh_history()
     except (OSError, sqlite3.Error):
         messagebox.showerror("Ошибка", "Не удалось прочитать историю расчётов.")
 
-    ttk.Label(content, text="Бытовая техника", font=("Segoe UI", 22)).grid(
-        row=0, column=0, sticky="w", pady=(0, 8)
+    form = ttk.Frame(content, padding=20, style="Card.TFrame")
+    form.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+    form.columnconfigure(0, weight=1)
+    form.columnconfigure(1, weight=0)
+    ttk.Label(form, text="Параметры прибора", style="CardTitle.TLabel").grid(
+        row=0, column=0, columnspan=2, sticky="w", pady=(0, 18)
     )
-    ttk.Label(content, text="Оценка энергопотребления и стоимости").grid(
-        row=1, column=0, sticky="w", pady=(0, 16)
-    )
-
     fields = {
         "Прибор": tk.StringVar(value="Утюг"),
         "Мощность, Вт": tk.StringVar(value="2000"),
@@ -209,27 +277,39 @@ def main() -> None:
         "Количество дней": tk.StringVar(value="30"),
         "Тариф, руб./кВт·ч": tk.StringVar(value="6"),
     }
-    form = ttk.Frame(content)
-    form.grid(row=2, column=0, sticky="ew")
-    form.columnconfigure(1, weight=1)
-    for row, (label, variable) in enumerate(fields.items()):
-        ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", padx=(0, 16), pady=6)
-        if row == 0:
-            selector = ttk.Combobox(
-                form, textvariable=variable, values=list(APPLIANCES), state="readonly", width=20
-            )
-            selector.grid(row=row, column=1, sticky="ew", pady=6)
-        else:
-            ttk.Entry(form, textvariable=variable, width=20).grid(
-                row=row, column=1, sticky="ew", pady=6
-            )
+    ttk.Label(form, text="Прибор", style="Card.TLabel").grid(row=1, column=0, columnspan=2, sticky="w")
+    selector = ttk.Combobox(form, textvariable=fields["Прибор"], values=list(APPLIANCES),
+                            state="readonly", font=ui_fonts["body"], width=23)
+    selector.grid(row=2, column=0, columnspan=2, sticky="w", pady=(6, 16))
+    for row, (label, variable) in enumerate(list(fields.items())[1:], start=3):
+        ttk.Label(form, text=label, style="Card.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 14), pady=8)
+        ttk.Entry(form, textvariable=variable, font=ui_fonts["body"], width=9).grid(
+            row=row, column=1, sticky="e", pady=8
+        )
 
-    result_text = tk.StringVar(value="Заполните поля и нажмите «Рассчитать».")
-    error_text = tk.StringVar()
+    result_frame = ttk.Frame(content, padding=20, style="Result.TFrame")
+    result_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+    result_frame.columnconfigure(0, weight=1)
+    result_text = tk.StringVar(value="Заполните параметры и нажмите «Рассчитать».")
+    energy_text = tk.StringVar(value="— кВт·ч")
+    cost_text = tk.StringVar(value="— руб.")
     save_text = tk.StringVar()
+    error_text = tk.StringVar()
+    ttk.Label(result_frame, text="Ваш результат", style="ResultTitle.TLabel").grid(row=0, column=0, sticky="w")
+    result_label = ttk.Label(result_frame, textvariable=result_text, style="Result.TLabel", wraplength=260)
+    result_label.grid(row=1, column=0, sticky="ew", pady=(14, 20))
+    save_label = ttk.Label(result_frame, textvariable=save_text, style="Saved.TLabel", wraplength=260)
+    save_label.grid(row=6, column=0, sticky="ew")
+    error_label = ttk.Label(content, textvariable=error_text, style="Error.TLabel", wraplength=760)
+    error_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+    footer = ttk.Label(content, text="Каждый успешный расчёт сохраняется во вкладке «История».",
+                       style="Muted.TLabel", wraplength=760)
+    footer.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
     def clear_result(*_args) -> None:
         result_text.set("Данные изменены. Нажмите «Рассчитать».")
+        energy_text.set("— кВт·ч")
+        cost_text.set("— руб.")
         error_text.set("")
         save_text.set("")
 
@@ -245,23 +325,17 @@ def main() -> None:
         try:
             power = read_number(fields["Мощность, Вт"].get(), "Мощность")
             appliance = APPLIANCES[fields["Прибор"].get()](float(power))
-            result = Calculation(
-                appliance,
-                fields["Часы работы в день"].get(),
-                fields["Количество дней"].get(),
-                fields["Тариф, руб./кВт·ч"].get(),
-            )
+            result = Calculation(appliance, fields["Часы работы в день"].get(),
+                                 fields["Количество дней"].get(), fields["Тариф, руб./кВт·ч"].get())
         except ValueError as exc:
-            result_text.set("Расчёт не выполнен.")
+            clear_result()
+            result_text.set("Проверьте введённые параметры.")
             error_text.set(str(exc))
-            save_text.set("")
             return
         error_text.set("")
-        result_text.set(
-            f"{result.appliance_name} · {result.power_w:g} Вт\n"
-            f"Энергия за {result.days:g} дн.: {result.energy_kwh:.4f} кВт·ч\n"
-            f"Стоимость: {result.cost_rub:.2f} руб."
-        )
+        result_text.set(f"{result.appliance_name} · {result.power_w:g} Вт\nЗа {result.days:g} дн.")
+        energy_text.set(f"{result.energy_kwh:.4f} кВт·ч")
+        cost_text.set(f"{result.cost_rub:.2f} руб.")
         try:
             record_id = repository.save(result)
         except (OSError, sqlite3.Error):
@@ -272,35 +346,47 @@ def main() -> None:
         try:
             refresh_history()
         except (OSError, sqlite3.Error):
-            error_text.set("Расчёт сохранён, но таблицу истории не удалось обновить. Перезапустите программу.")
+            error_text.set("Расчёт сохранён, но историю не удалось обновить. Перезапустите программу.")
 
-    buttons = ttk.Frame(content)
-    buttons.grid(row=3, column=0, sticky="ew", pady=(16, 12))
-    buttons.columnconfigure(0, weight=1)
-    buttons.columnconfigure(1, weight=1)
-    ttk.Button(buttons, text="Рассчитать", command=calculate).grid(
-        row=0, column=0, sticky="ew", padx=(0, 6)
-    )
-    ttk.Button(buttons, text="Справка", command=show_help).grid(
-        row=0, column=1, sticky="ew", padx=(6, 0)
-    )
-
-    result_frame = ttk.LabelFrame(content, text="Результат", padding=12)
-    result_frame.grid(row=4, column=0, sticky="ew")
-    result_frame.columnconfigure(0, weight=1)
-    result_label = ttk.Label(result_frame, textvariable=result_text, wraplength=360)
-    result_label.grid(sticky="ew")
-    ttk.Label(result_frame, textvariable=save_text).grid(sticky="ew", pady=(6, 0))
-    error_label = ttk.Label(content, textvariable=error_text, foreground="#b91c1c", wraplength=360)
-    error_label.grid(row=5, column=0, sticky="new", pady=(10, 0))
-    content.bind(
-        "<Configure>",
-        lambda event: (
-            result_label.configure(wraplength=max(100, event.width - 64)),
-            error_label.configure(wraplength=max(100, event.width - 40)),
-        ),
+    ttk.Button(form, text="Рассчитать", style="Primary.TButton", command=calculate).grid(
+        row=7, column=0, columnspan=2, sticky="ew", pady=(18, 0)
     )
     window.bind("<Return>", calculate)
+
+    resize_state = {"job": None, "scale": 1.0}
+
+    def resize_text() -> None:
+        resize_state["job"] = None
+        scale = round(min(1.35, max(1.0, min(window.winfo_width() / base_width,
+                                            window.winfo_height() / base_height))), 2)
+        if scale != resize_state["scale"]:
+            resize_state["scale"] = scale
+            for key, named_font in ui_fonts.items():
+                named_font.configure(size=round(base_sizes[key] * scale))
+            for named_font in default_fonts:
+                named_font.configure(size=round(14 * scale))
+            style.configure("History.Treeview", rowheight=row_font.metrics("linespace") + 14)
+            fit_columns()
+        result_width = max(200, result_frame.winfo_width() - 40)
+        result_label.configure(wraplength=result_width)
+        save_label.configure(wraplength=result_width)
+        error_label.configure(wraplength=max(400, content.winfo_width() - 40))
+        footer.configure(wraplength=max(400, content.winfo_width() - 40))
+
+    def schedule_resize(event) -> None:
+        if event.widget is not window:
+            return
+        if resize_state["job"] is not None:
+            window.after_cancel(resize_state["job"])
+        resize_state["job"] = window.after(100, resize_text)
+
+    # Минимум учитывает реальную высоту элементов при текущем шрифте и DPI.
+    # Эта же высота служит базой масштабирования, чтобы текст не обрезался.
+    window.update_idletasks()
+    base_height = max(base_height, window.winfo_reqheight() + 16)
+    window.minsize(base_width, base_height)
+    window.geometry(f"{base_width}x{base_height}")
+    window.bind("<Configure>", schedule_resize)
     window.mainloop()
 
 
